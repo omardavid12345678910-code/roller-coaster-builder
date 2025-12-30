@@ -37,7 +37,7 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
   selectedPointId: null,
   rideProgress: 0,
   isRiding: false,
-  rideSpeed: 0.3,
+  rideSpeed: 1.0,
   
   setMode: (mode) => set({ mode }),
   

@@ -66,9 +66,9 @@ export function GameUI() {
               </label>
               <input
                 type="range"
-                min="0.1"
-                max="1"
-                step="0.1"
+                min="0.5"
+                max="3"
+                step="0.25"
                 value={rideSpeed}
                 onChange={(e) => setRideSpeed(parseFloat(e.target.value))}
                 className="w-full"
