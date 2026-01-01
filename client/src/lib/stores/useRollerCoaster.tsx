@@ -131,13 +131,18 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
       
       const loopRadius = 8;
       const numPoints = 24; // More points for smoother curve
-      const totalShift = loopRadius * 2 + 4; // Total forward shift: loop diameter + buffer
+      const forwardShift = loopRadius + 4; // Forward shift for exit
+      const lateralShift = loopRadius * 2 + 2; // Lateral shift to prevent self-intersection
       const loopPoints: TrackPoint[] = [];
       
+      // Compute right vector (perpendicular to forward in horizontal plane)
+      const up = new THREE.Vector3(0, 1, 0);
+      const right = new THREE.Vector3().crossVectors(forward, up).normalize();
+      
       // Loop path using θ from 0 to 2π:
-      // The loop circle oscillates forward/back with sin(θ), but we add a smooth
-      // progressive shift so the exit aligns with the shifted downstream track.
-      // Using smoothstep for gradual acceleration/deceleration: S(t) = t²(3-2t)
+      // - sin(θ) for forward oscillation (go forward, come back)
+      // - (1-cos(θ)) for vertical (up and over)
+      // - Smooth lateral shift to separate ascending/descending portions
       
       for (let i = 1; i <= numPoints; i++) {
         const t = i / numPoints;
@@ -151,13 +156,13 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
         // (1-cos(θ)): height curve 0→2R→0
         const verticalOffset = (1 - Math.cos(theta)) * loopRadius;
         
-        // Progressive shift distributed smoothly across the loop
-        // By the end (t=1, smoothT=1), we've shifted by totalShift
-        const progressiveShift = smoothT * totalShift;
+        // Progressive shifts distributed smoothly across the loop
+        const progressiveForward = smoothT * forwardShift;
+        const progressiveLateral = smoothT * lateralShift;
         
-        const x = entryPos.x + forward.x * (forwardOffset + progressiveShift);
+        const x = entryPos.x + forward.x * (forwardOffset + progressiveForward) + right.x * progressiveLateral;
         const y = entryPos.y + verticalOffset;
-        const z = entryPos.z + forward.z * (forwardOffset + progressiveShift);
+        const z = entryPos.z + forward.z * (forwardOffset + progressiveForward) + right.z * progressiveLateral;
         
         loopPoints.push({
           id: `point-${++pointCounter}`,
@@ -166,13 +171,13 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
         });
       }
       
-      // Shift all downstream points forward by the same amount
+      // Shift all downstream points by same forward and lateral amounts
       const shiftedDownstreamPoints = state.trackPoints.slice(pointIndex + 1).map(p => ({
         ...p,
         position: new THREE.Vector3(
-          p.position.x + forward.x * totalShift,
+          p.position.x + forward.x * forwardShift + right.x * lateralShift,
           p.position.y,
-          p.position.z + forward.z * totalShift
+          p.position.z + forward.z * forwardShift + right.z * lateralShift
         )
       }));
       
