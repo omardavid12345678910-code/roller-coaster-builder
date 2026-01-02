@@ -193,20 +193,47 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
       // Loop exit position (last point of loop) - should be very close to entry
       const loopExit = loopPoints[loopPoints.length - 1].position.clone();
       
-      // Create transition points to smoothly return to the original next point
+      // Create smooth transition points using cubic Hermite interpolation
       const transitionPoints: TrackPoint[] = [];
       if (nextPoint) {
         const nextPos = nextPoint.position.clone();
-        // Midpoint transition
-        transitionPoints.push({
-          id: `point-${++pointCounter}`,
-          position: new THREE.Vector3(
-            (loopExit.x + nextPos.x) / 2,
-            (loopExit.y + nextPos.y) / 2,
-            (loopExit.z + nextPos.z) / 2
-          ),
-          tilt: 0
-        });
+        
+        // Exit tangent: loop exits going forward (same direction as entry)
+        const exitTangent = forward.clone();
+        
+        // Target tangent: direction toward next point
+        const toNext = nextPos.clone().sub(loopExit);
+        const targetTangent = toNext.clone().normalize();
+        
+        // Distance for transition
+        const dist = toNext.length();
+        
+        // Create 3 transition points with Hermite blending
+        for (let i = 1; i <= 3; i++) {
+          const t = i / 4; // 0.25, 0.5, 0.75
+          
+          // Hermite basis functions
+          const h00 = 2*t*t*t - 3*t*t + 1;
+          const h10 = t*t*t - 2*t*t + t;
+          const h01 = -2*t*t*t + 3*t*t;
+          const h11 = t*t*t - t*t;
+          
+          // Tangent scaling (use distance as tangent magnitude)
+          const tangentScale = dist * 0.5;
+          
+          const px = h00 * loopExit.x + h10 * exitTangent.x * tangentScale + 
+                     h01 * nextPos.x + h11 * targetTangent.x * tangentScale;
+          const py = h00 * loopExit.y + h10 * exitTangent.y * tangentScale + 
+                     h01 * nextPos.y + h11 * targetTangent.y * tangentScale;
+          const pz = h00 * loopExit.z + h10 * exitTangent.z * tangentScale + 
+                     h01 * nextPos.z + h11 * targetTangent.z * tangentScale;
+          
+          transitionPoints.push({
+            id: `point-${++pointCounter}`,
+            position: new THREE.Vector3(px, py, pz),
+            tilt: 0
+          });
+        }
       }
       
       // Combine: original up to entry + loop + transitions + original remainder (unchanged)
