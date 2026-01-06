@@ -2,7 +2,8 @@ import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
 export function Ground() {
-  const texture = useTexture("/textures/grass.png");
+  const basePath = import.meta.env.BASE_URL || '/';
+  const texture = useTexture(`${basePath}textures/grass.png`);
   
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(200, 200);
