@@ -19,7 +19,15 @@ function MusicController() {
   } = useAudio();
   
   useEffect(() => {
-    const base = import.meta.env.BASE_URL || '/';
+    const getBasePath = () => {
+      const path = window.location.pathname;
+      if (path.includes('/roller-coaster-builder')) {
+        return '/roller-coaster-builder/';
+      }
+      return '/';
+    };
+    const base = getBasePath();
+    
     const dayMusic = new Audio(`${base}sounds/music.mp3`);
     dayMusic.loop = true;
     dayMusic.volume = 0.5;
